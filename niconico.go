@@ -117,6 +117,9 @@ func (nc *NicoClient) GetLiveInfo(liveID string) (*LiveVideo, error) {
 	for i, found := range result {
 		videos[i] = found[1]
 	}
+	fmt.Println(rtmpurl)
+	fmt.Println(ticket)
+	fmt.Println(videos)
 	return &LiveVideo{videoURLs: videos, ticket: ticket, rtmpurl: rtmpurl}, nil
 }
 
@@ -157,11 +160,13 @@ func (nc *NicoClient) DownloadTimeshift(liveVideo *LiveVideo, fileout string) {
 		}
 		fmt.Println(`Saving video as ` + fileout)
 		cmd := exec.Command(`rtmpdump`, `-r`, rtmpurl, `-y`, `mp4:`+video, `-C`, `S:`+ticket, `-o`, fileout)
-		//fmt.Println(cmd)
 		result, err := cmd.CombinedOutput()
 		fmt.Println(string(result))
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
+			if strings.Contains(rtmpurl, `premium`) {
+				log.Println(`this stream may be premium only.`)
+			}
 		}
 	}
 }
