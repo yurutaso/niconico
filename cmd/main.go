@@ -33,12 +33,12 @@ func main() {
 		log.Fatal(fmt.Errorf(`You must set email address and password`))
 	}
 
-	nc := niconico.NewNicoClient()
-	nc.SetUser(*argEmail, *argPassword)
-	nc.Login()
-
 	id := os.Args[1]
 	if *flagTimeshift {
+		nc := niconico.NewNicoClient()
+		nc.SetUser(*argEmail, *argPassword)
+		nc.Login()
+
 		liveVideo, err := nc.GetLiveInfo(id)
 		if err != nil {
 			log.Fatal(err)
@@ -56,20 +56,45 @@ func main() {
 		}
 		nc.DownloadTimeshift(liveVideo, fileout)
 	} else {
-		videoURL, err := nc.GetVideoURL(id)
+		nc, err := niconico.NewNicoDriver(*argEmail, *argPassword)
 		if err != nil {
 			log.Fatal(err)
 		}
-		doc, err := nc.GetVideoCookie(id)
+		defer nc.Close()
+
+		info, err := nc.GetVideoInfo(id)
 		if err != nil {
 			log.Fatal(err)
 		}
-		fileout := ``
+
+		var fileout string
 		if len(*argVideoOut) == 0 {
-			fileout = niconico.GetTitle(doc) + `.mp4`
+			fileout = info.Title + `.mp4`
 		} else {
 			fileout = *argVideoOut
 		}
-		nc.DownloadVideo(videoURL, fileout)
+		nc.DownloadVideo(info.URL, fileout)
+
+		/*
+			nc := niconico.NewNicoClient()
+			nc.SetUser(*argEmail, *argPassword)
+			nc.Login()
+			//videoURL, err := nc.GetVideoURL(id)
+			videoURL, err := nc.GetVideoURLHTML5(id)
+			if err != nil {
+				log.Fatal(err)
+			}
+			doc, err := nc.GetVideoCookie(id)
+			if err != nil {
+				log.Fatal(err)
+			}
+			fileout := ``
+			if len(*argVideoOut) == 0 {
+				fileout = niconico.GetTitle(doc) + `.mp4`
+			} else {
+				fileout = *argVideoOut
+			}
+			nc.DownloadVideo(videoURL, fileout)
+		*/
 	}
 }

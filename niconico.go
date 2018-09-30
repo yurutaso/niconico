@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	loginURL     = `https://secure.nicovideo.jp/secure/login`
-	getflvURL    = `http://flapi.nicovideo.jp/api/getflv/`
+	LOGIN_URL_API = `https://secure.nicovideo.jp/secure/login`
+	getflvURL     = `http://flapi.nicovideo.jp/api/getflv/`
+	//getflvURL    = `http://jk.nicovideo.jp/api/v2/getflv?v=`
 	watchURL     = `http://www.nicovideo.jp/watch/`
 	liveinfoURL  = `http://watch.live.nicovideo.jp/api/getplayerstatus/lv`
 	livewatchURL = `http://live.nicovideo.jp/watch/lv`
@@ -53,7 +54,7 @@ func (nc *NicoClient) SetUser(email, password string) {
 
 func (nc *NicoClient) Login() error {
 	values := url.Values{`mail_tel`: []string{nc.email}, `password`: []string{nc.password}}
-	res, err := nc.client.PostForm(loginURL, values)
+	res, err := nc.client.PostForm(LOGIN_URL_API, values)
 	defer res.Body.Close()
 	if err != nil {
 		return err
@@ -61,7 +62,9 @@ func (nc *NicoClient) Login() error {
 	return nil
 }
 
-func (nc *NicoClient) GetVideoURL(videoID string) (string, error) {
+func (nc *NicoClient) GetVideoURLFLV(videoID string) (string, error) {
+	// Download a video via url obtained with getflv api seems broken (2018/09/30)
+	// Using Chrome WebDriver is better now.
 	res, err := nc.client.Get(getflvURL + videoID)
 	defer res.Body.Close()
 	if err != nil {
@@ -72,19 +75,22 @@ func (nc *NicoClient) GetVideoURL(videoID string) (string, error) {
 		return "", err
 	}
 	query := doc.Find(`Body`).Text()
+
 	values, err := url.ParseQuery(query)
 	if err != nil {
 		return "", err
 	}
+	fmt.Println(values)
 	return values[`url`][0], nil
 }
 
 func (nc *NicoClient) GetVideoCookie(videoID string) (*goquery.Document, error) {
 	res, err := nc.client.Get(watchURL + videoID)
-	defer res.Body.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer res.Body.Close()
+
 	doc, err := goquery.NewDocumentFromResponse(res)
 	if err != nil {
 		return nil, err
